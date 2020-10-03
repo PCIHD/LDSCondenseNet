@@ -1,16 +1,17 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
 import torch.nn.functional as F
+from torch.autograd import Variable
+
 
 # Rewrote and simplified Depthwise seperable convolution
 class CSDN_Tem(nn.Module):
-    def __init__(self, in_ch, out_ch,dropout):
+    def __init__(self, in_ch, out_ch, dropout):
         super(CSDN_Tem, self).__init__()
         self.dropout = dropout
         self.depth_conv = nn.Conv2d(
@@ -34,15 +35,14 @@ class CSDN_Tem(nn.Module):
     def forward(self, input):
         out = self.depth_conv(input)
         out = self.point_conv(out)
-        if(self.dropout>0):
+        if (self.dropout > 0):
             out = self.drop(out)
         return out
 
 
-
-
 class LearnedGroupConv(nn.Module):
     global_progress = 0.0
+
     def __init__(self, in_channels, out_channels, kernel_size, stride=1,
                  padding=0, dilation=1, groups=1,
                  condense_factor=None, dropout_rate=0.):
@@ -68,7 +68,7 @@ class LearnedGroupConv(nn.Module):
         assert self.in_channels % self.groups == 0, "group number can not be divided by input channels"
         assert self.in_channels % self.condense_factor == 0, "condensation factor can not be divided by input channels"
 
-        #assert self.out_channels % self.groups == 0, "group number can not be divided by output channels"
+        # assert self.out_channels % self.groups == 0, "group number can not be divided by output channels"
 
     def forward(self, x):
         self._check_drop()
@@ -175,12 +175,12 @@ def ShuffleLayer(x, groups):
 class CondensingLinear(nn.Module):
     def __init__(self, model, drop_rate=0.5):
         super(CondensingLinear, self).__init__()
-        self.in_features = int(model.in_features*drop_rate)
+        self.in_features = int(model.in_features * drop_rate)
         self.out_features = model.out_features
         self.linear = nn.Linear(self.in_features, self.out_features)
         self.register_buffer('index', torch.LongTensor(self.in_features))
         _, index = model.weight.data.abs().sum(0).sort()
-        index = index[model.in_features-self.in_features:]
+        index = index[model.in_features - self.in_features:]
         self.linear.bias.data = model.bias.data.clone()
         for i in range(self.in_features):
             self.index[i] = index[i]
@@ -196,7 +196,7 @@ class CondensingConv(nn.Module):
     def __init__(self, model):
         super(CondensingConv, self).__init__()
         self.in_channels = model.conv.in_channels \
-                         * model.groups // model.condense_factor
+                           * model.groups // model.condense_factor
         self.out_channels = model.conv.out_channels
         self.groups = model.groups
         self.condense_factor = model.condense_factor
@@ -214,7 +214,7 @@ class CondensingConv(nn.Module):
         for i in range(self.groups):
             for j in range(model.conv.in_channels):
                 if index < (self.in_channels // self.groups) * (i + 1) \
-                         and mask[i, j] == 1:
+                        and mask[i, j] == 1:
                     for k in range(self.out_channels // self.groups):
                         idx_i = int(k + i * (self.out_channels // self.groups))
                         idx_j = index % (self.in_channels // self.groups)
@@ -239,7 +239,7 @@ class CondensingConv(nn.Module):
 class CondenseLinear(nn.Module):
     def __init__(self, in_features, out_features, drop_rate=0.5):
         super(CondenseLinear, self).__init__()
-        self.in_features = int(in_features*drop_rate)
+        self.in_features = int(in_features * drop_rate)
         self.out_features = out_features
         self.linear = nn.Linear(self.in_features, self.out_features)
         self.register_buffer('index', torch.LongTensor(self.in_features))

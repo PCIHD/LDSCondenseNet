@@ -1,14 +1,14 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import math
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-import math
-from layers import Conv, LearnedGroupConv ,CSDN_Tem,Learned_Dw_Conv
+
+from layers import LearnedGroupConv, CSDN_Tem
 
 __all__ = ['CondenseNet']
 
@@ -19,16 +19,16 @@ class _DenseLayer(nn.Module):
         self.group_1x1 = args.group_1x1
         self.group_3x3 = args.group_3x3
         ### 1x1 conv i --> b*k
-        self.conv_1 = CSDN_Tem(in_channels,growth_rate,dropout=args.dropout_rate
-                                       )
+        self.conv_1 = CSDN_Tem(in_channels, growth_rate, dropout=args.dropout_rate
+                               )
         ### 3x3 conv b*k --> k
-        #self.conv_2 = Conv(args.bottleneck * growth_rate, growth_rate,
-         #                  kernel_size=3, padding=1, groups=self.group_3x3)y
+        # self.conv_2 = Conv(args.bottleneck * growth_rate, growth_rate,
+        #                  kernel_size=3, padding=1, groups=self.group_3x3)y
 
     def forward(self, x):
         x_ = x
         x = self.conv_1(x)
-        #x = self.conv_2(x)
+        # x = self.conv_2(x)
         return torch.cat([x_, x], 1)
 
 

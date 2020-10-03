@@ -1,1 +1,1 @@
-from .condensenet import  CondenseNet as condensenet
+from .condensenet import CondenseNet as condensenet

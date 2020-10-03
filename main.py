@@ -1,15 +1,16 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import argparse
+import math
 import os
+import pickle
 import shutil
 import time
-import math
 import warnings
-import pickle
+
 import models
 from utils import convert_model, measure_model
 
@@ -109,6 +110,7 @@ best_prec1 = 0
 torch.backends.cudnn.benchmark = True
 torch.backends.cudnn.enabled = True
 
+
 def main():
     global args, best_prec1
 
@@ -122,8 +124,8 @@ def main():
     n_flops, n_params = measure_model(model, IMAGE_SIZE, IMAGE_SIZE)
     print('FLOPs: %.2fM, Params: %.2fM' % (n_flops / 1e6, n_params / 1e6))
     args.filename = "%s_%s_%s.txt" % \
-        (args.model, int(n_params), int(n_flops))
-    del(model)
+                    (args.model, int(n_params), int(n_flops))
+    del (model)
     print(args)
 
     ### Create model
@@ -134,7 +136,7 @@ def main():
         model.cuda()
     else:
         model = torch.nn.DataParallel(model).cuda()
-    pickle.dump(args,open('args','wb'))
+    pickle.dump(args, open('args', 'wb'))
     pickle.dump(model, open('model', 'wb'))
 
     ### Define loss function (criterion) and optimizer
@@ -172,7 +174,7 @@ def main():
         state_dict = torch.load(args.evaluate_from)['state_dict']
         model.load_state_dict(state_dict)
 
-    #cudnn.benchmark = True
+    # cudnn.benchmark = True
 
     ### Data loading
     if args.data == "cifar10":
@@ -194,17 +196,17 @@ def main():
         normalize = transforms.Normalize(mean=[0.5071, 0.4867, 0.4408],
                                          std=[0.2675, 0.2565, 0.2761])
         train_set = datasets.CIFAR100('../data', train=True, download=True,
-                                     transform=transforms.Compose([
-                                         transforms.RandomCrop(32, padding=4),
-                                         transforms.RandomHorizontalFlip(),
-                                         transforms.ToTensor(),
-                                         normalize,
-                                     ]))
+                                      transform=transforms.Compose([
+                                          transforms.RandomCrop(32, padding=4),
+                                          transforms.RandomHorizontalFlip(),
+                                          transforms.ToTensor(),
+                                          normalize,
+                                      ]))
         val_set = datasets.CIFAR100('../data', train=False,
-                                   transform=transforms.Compose([
-                                       transforms.ToTensor(),
-                                       normalize,
-                                   ]))
+                                    transform=transforms.Compose([
+                                        transforms.ToTensor(),
+                                        normalize,
+                                    ]))
     else:
         traindir = os.path.join(args.data, 'train')
         valdir = os.path.join(args.data, 'val')
@@ -257,9 +259,8 @@ def main():
             'best_prec1': best_prec1,
             'optimizer': optimizer.state_dict(),
         }, args, is_best, model_filename, "%.4f %.4f %.4f %.4f %.4f %.4f\n" %
-            (val_prec1, val_prec5, tr_prec1, tr_prec5, loss, lr))
-        torch.save(model,model_filename)
-
+                                          (val_prec1, val_prec5, tr_prec1, tr_prec5, loss, lr))
+        torch.save(model, model_filename)
 
     ### Convert model and test
     model = model.cpu().module
@@ -291,7 +292,7 @@ def train(train_loader, model, criterion, optimizer, epoch):
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
         progress = float(epoch * len(train_loader) + i) / \
-            (args.epochs * len(train_loader))
+                   (args.epochs * len(train_loader))
         args.progress = progress
         ### Adjust learning rate
         lr = adjust_learning_rate(optimizer, epoch, args, batch=i,
@@ -340,8 +341,8 @@ def train(train_loader, model, criterion, optimizer, epoch):
                   'Prec@1 {top1.val:.3f}\t'  # ({top1.avg:.3f}) '
                   'Prec@5 {top5.val:.3f}\t'  # ({top5.avg:.3f})'
                   'lr {lr: .4f}'.format(
-                      epoch, i, len(train_loader), batch_time=batch_time,
-                      data_time=data_time, loss=losses, top1=top1, top5=top5, lr=lr))
+                epoch, i, len(train_loader), batch_time=batch_time,
+                data_time=data_time, loss=losses, top1=top1, top5=top5, lr=lr))
     return 100. - top1.avg, 100. - top5.avg, losses.avg, running_lr
 
 
@@ -380,8 +381,8 @@ def validate(val_loader, model, criterion):
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                   'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                   'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
-                      i, len(val_loader), batch_time=batch_time, loss=losses,
-                      top1=top1, top5=top5))
+                i, len(val_loader), batch_time=batch_time, loss=losses,
+                top1=top1, top5=top5))
 
     print(' * Prec@1 {top1.avg:.3f} Prec@5 {top5.avg:.3f}'
           .format(top1=top1, top5=top5))
@@ -429,6 +430,7 @@ def save_checkpoint(state, args, is_best, filename, result):
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
+
     def __init__(self):
         self.reset()
 
@@ -455,7 +457,7 @@ def adjust_learning_rate(optimizer, epoch, args, batch=None,
         if args.data in ['cifar10', 'cifar100']:
             lr, decay_rate = args.lr, 0.1
             if epoch >= args.epochs * 0.75:
-                lr *= decay_rate**2
+                lr *= decay_rate ** 2
             elif epoch >= args.epochs * 0.5:
                 lr *= decay_rate
         else:

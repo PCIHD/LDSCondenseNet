@@ -1,15 +1,16 @@
 from __future__ import absolute_import
-from __future__ import unicode_literals
-from __future__ import print_function
 from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+import operator
+from functools import reduce
 
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from functools import reduce
-import operator
-from layers import LearnedGroupConv, CondensingLinear, CondensingConv, Conv
 
+from layers import CondensingLinear, CondensingConv
 
 count_ops = 0
 count_params = 0
@@ -37,10 +38,10 @@ def convert_model(model, args):
         if is_leaf(child):
             if isinstance(child, nn.Linear):
                 model._modules[m] = CondensingLinear(child, 0.5)
-                del(child)
+                del (child)
         elif is_pruned(child):
             model._modules[m] = CondensingConv(child)
-            del(child)
+            del (child)
         else:
             convert_model(child, args)
 
@@ -69,8 +70,8 @@ def measure_layer(layer, x):
                     layer.stride[0] + 1)
         out_w = int((x.size()[3] + 2 * layer.padding[1] - layer.kernel_size[1]) /
                     layer.stride[1] + 1)
-        delta_ops = layer.in_channels * layer.out_channels * layer.kernel_size[0] *  \
-                layer.kernel_size[1] * out_h * out_w / layer.groups * multi_add
+        delta_ops = layer.in_channels * layer.out_channels * layer.kernel_size[0] * \
+                    layer.kernel_size[1] * out_h * out_w / layer.groups * multi_add
         delta_params = get_layer_param(layer)
 
     ### ops_learned_conv
@@ -83,7 +84,7 @@ def measure_layer(layer, x):
         out_w = int((x.size()[3] + 2 * conv.padding[1] - conv.kernel_size[1]) /
                     conv.stride[1] + 1)
         delta_ops = conv.in_channels * conv.out_channels * conv.kernel_size[0] * \
-                conv.kernel_size[1] * out_h * out_w / layer.condense_factor * multi_add
+                    conv.kernel_size[1] * out_h * out_w / layer.condense_factor * multi_add
         delta_params = get_layer_param(conv) / layer.condense_factor
 
     ### ops_nonlinearity
@@ -140,7 +141,9 @@ def measure_model(model, H, W):
                     def lambda_forward(x):
                         measure_layer(m, x)
                         return m.old_forward(x)
+
                     return lambda_forward
+
                 child.old_forward = child.forward
                 child.forward = new_forward(child)
             else:
