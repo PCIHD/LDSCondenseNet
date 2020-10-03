@@ -8,7 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import math
-from layers import Conv, LearnedGroupConv ,CSDN_Tem
+from layers import Conv, LearnedGroupConv ,CSDN_Tem,Learned_Dw_Conv
 
 __all__ = ['CondenseNet']
 
@@ -19,11 +19,11 @@ class _DenseLayer(nn.Module):
         self.group_1x1 = args.group_1x1
         self.group_3x3 = args.group_3x3
         ### 1x1 conv i --> b*k
-        self.conv_1 = CSDN_Tem(in_channels, growth_rate,dropout=args.dropout_rate
+        self.conv_1 = CSDN_Tem(in_channels,growth_rate,dropout=args.dropout_rate
                                        )
         ### 3x3 conv b*k --> k
         #self.conv_2 = Conv(args.bottleneck * growth_rate, growth_rate,
-         #                  kernel_size=3, padding=1, groups=self.group_3x3)
+         #                  kernel_size=3, padding=1, groups=self.group_3x3)y
 
     def forward(self, x):
         x_ = x
@@ -80,6 +80,7 @@ class CondenseNet(nn.Module):
             ### Dense-block i
             self.add_block(i)
         ### Linear layer
+
         self.classifier = nn.Linear(self.num_features, args.num_classes)
 
         ### initialize

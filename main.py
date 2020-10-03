@@ -9,8 +9,8 @@ import shutil
 import time
 import math
 import warnings
-import models
 import pickle
+import models
 from utils import convert_model, measure_model
 
 parser = argparse.ArgumentParser(description='PyTorch Condensed Convolutional Networks')
@@ -106,14 +106,14 @@ torch.manual_seed(args.manual_seed)
 torch.cuda.manual_seed_all(args.manual_seed)
 
 best_prec1 = 0
-
+torch.backends.cudnn.benchmark = True
+torch.backends.cudnn.enabled = True
 
 def main():
     global args, best_prec1
 
     ### Calculate FLOPs & Param
     model = getattr(models, args.model)(args)
-
     print(model)
     if args.data in ['cifar10', 'cifar100']:
         IMAGE_SIZE = 32
@@ -124,7 +124,7 @@ def main():
     args.filename = "%s_%s_%s.txt" % \
         (args.model, int(n_params), int(n_flops))
     del(model)
-    pickle.dump(args,open('args','wb'))
+    print(args)
 
     ### Create model
     model = getattr(models, args.model)(args)
@@ -134,6 +134,8 @@ def main():
         model.cuda()
     else:
         model = torch.nn.DataParallel(model).cuda()
+    pickle.dump(args,open('args','wb'))
+    pickle.dump(model, open('model', 'wb'))
 
     ### Define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda()
@@ -154,6 +156,7 @@ def main():
     ### Optionally convert from a model
     if args.convert_from is not None:
         args.evaluate = True
+
         state_dict = torch.load(args.convert_from)['state_dict']
         model.load_state_dict(state_dict)
         model = model.cpu().module
@@ -169,7 +172,7 @@ def main():
         state_dict = torch.load(args.evaluate_from)['state_dict']
         model.load_state_dict(state_dict)
 
-    cudnn.benchmark = True
+    #cudnn.benchmark = True
 
     ### Data loading
     if args.data == "cifar10":
@@ -224,12 +227,12 @@ def main():
     train_loader = torch.utils.data.DataLoader(
         train_set,
         batch_size=args.batch_size, shuffle=True,
-        num_workers=args.workers, pin_memory=True)
+        num_workers=args.workers, pin_memory=False)
 
     val_loader = torch.utils.data.DataLoader(
         val_set,
         batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True)
+        num_workers=args.workers, pin_memory=False)
 
     if args.evaluate:
         validate(val_loader, model, criterion)
@@ -247,9 +250,6 @@ def main():
         is_best = val_prec1 < best_prec1
         best_prec1 = max(val_prec1, best_prec1)
         model_filename = 'checkpoint_%03d.pth.tar' % epoch
-        for param_group in optimizer.param_groups:
-            return param_group['lr']
-
         save_checkpoint({
             'epoch': epoch,
             'model': args.model,
@@ -258,7 +258,8 @@ def main():
             'optimizer': optimizer.state_dict(),
         }, args, is_best, model_filename, "%.4f %.4f %.4f %.4f %.4f %.4f\n" %
             (val_prec1, val_prec5, tr_prec1, tr_prec5, loss, lr))
-        torch.save(model,model_filename+"zip")
+        torch.save(model,model_filename)
+
 
     ### Convert model and test
     model = model.cpu().module
@@ -268,8 +269,6 @@ def main():
     validate(val_loader, model, criterion)
     n_flops, n_params = measure_model(model, IMAGE_SIZE, IMAGE_SIZE)
     print('FLOPs: %.2fM, Params: %.2fM' % (n_flops / 1e6, n_params / 1e6))
-    torch.save(model,'final_model')
-
     return
 
 
@@ -317,7 +316,6 @@ def train(train_loader, model, criterion, optimizer, epoch):
             for m in learned_module_list:
                 lasso_loss = lasso_loss + m.lasso_loss
             loss = loss + args.group_lasso_lambda * lasso_loss
-        torch.cuda.synchronize()
 
         ### Measure accuracy and record loss
         prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
