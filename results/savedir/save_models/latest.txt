@@ -1,1 +1,0 @@
-results/savedir\save_models\checkpoint_299.pth.tar
